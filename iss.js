@@ -54,7 +54,6 @@ const fetchCoordsByIP = function (ip, callback) {
 
 // // FLYOVER TIMES
 const fetchISSFlyOverTimes = function (coords, callback) {
-  // ...
   const lat = coords.latitude;
   const lon = coords.longitude;
 
@@ -73,24 +72,47 @@ const fetchISSFlyOverTimes = function (coords, callback) {
         const data = JSON.parse(body);
         const response = data.response;
 
-        let dates = [];
+        const dates = response.map(
+          ({ duration: durationSeconds, risetime }) => {
+            const durationMinutes = durationSeconds / 60;
+            const timeOfDay = new Date(risetime * 1000).toLocaleTimeString(
+              "en-CA",
+            );
+            const visibleDate = new Date(risetime * 1000).toLocaleDateString(
+              "en-CA",
+            );
 
-        response.forEach((day) => {
-          const duration = day.duration / 60;
-          const risetime = new Date(day.risetime * 1000).toLocaleDateString(
-            "en-CA",
-          );
-
-          const str = {
-            risetime: risetime,
-            duration: duration.toFixed(2),
-          };
-          dates.push(str);
-        });
+            return {
+              risetime: visibleDate + ", " + timeOfDay,
+              duration: durationMinutes.toFixed(2),
+            };
+          },
+        );
         callback(null, dates);
       }
     },
   );
 };
 
-module.exports = { fetchMyIP, fetchCoordsByIP, fetchISSFlyOverTimes };
+const nextISSTimesForMyLocation = function (callback) {
+  fetchMyIP((error, ipData) => {
+    if (error) return;
+
+    fetchCoordsByIP(ipData, (error, coordsData) => {
+      if (error) return;
+
+      fetchISSFlyOverTimes(coordsData, (error, datesData) => {
+        if (error) return;
+
+        callback(null, datesData);
+      });
+    });
+  });
+};
+
+module.exports = {
+  fetchMyIP,
+  fetchCoordsByIP,
+  fetchISSFlyOverTimes,
+  nextISSTimesForMyLocation,
+};
