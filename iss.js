@@ -30,6 +30,7 @@ const fetchMyIP = function (callback) {
   });
 };
 
+// // LAT/LONG
 const fetchCoordsByIP = function (ip, callback) {
   // use request to fetch IP address from JSON API
   const endPoint = "https://freegeoip.app/json/";
@@ -50,6 +51,46 @@ const fetchCoordsByIP = function (ip, callback) {
     }
   });
 };
-// https://freegeoip.app/json/
 
-module.exports = { fetchMyIP, fetchCoordsByIP };
+// // FLYOVER TIMES
+const fetchISSFlyOverTimes = function (coords, callback) {
+  // ...
+  const lat = coords.latitude;
+  const lon = coords.longitude;
+
+  request(
+    `http://api.open-notify.org/iss/v1/?lat=${lat}&lon=${lon}`,
+    (error, res, body) => {
+      if (error) {
+        callback(error);
+        return;
+      }
+      if (res && res.statusCode !== 200) {
+        callback(Error(`Status Code ${res.statusCode}`), null);
+        return;
+      }
+      if (body) {
+        const data = JSON.parse(body);
+        const response = data.response;
+
+        let dates = [];
+
+        response.forEach((day) => {
+          const duration = day.duration / 60;
+          const risetime = new Date(day.risetime * 1000).toLocaleDateString(
+            "en-CA",
+          );
+
+          const str = {
+            risetime: risetime,
+            duration: duration.toFixed(2),
+          };
+          dates.push(str);
+        });
+        callback(null, dates);
+      }
+    },
+  );
+};
+
+module.exports = { fetchMyIP, fetchCoordsByIP, fetchISSFlyOverTimes };
